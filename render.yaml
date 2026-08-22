@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: shwezin-dialogue-studio
+    runtime: python
+    buildCommand: "apt-get update && apt-get install -y ffmpeg || true && pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    plan: free
