@@ -9,7 +9,6 @@ import time
 
 app = Flask(__name__)
 
-# API Key လုံခြုံစွာ ချိတ်ဆက်ခြင်း
 API_PART1 = "gsk_"
 API_PART2 = "RQXwEWatRMPoCkGYNCt0WGdyb3FY5b6bnhYPI6UVvn062wnyp4Pv"
 GROQ_CLIENT = Groq(api_key=API_PART1 + API_PART2)
@@ -134,4 +133,5 @@ def dub_video():
     return send_file(final_output, as_attachment=True, download_name="myanmar_dialogue_dubbed.mp4")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
