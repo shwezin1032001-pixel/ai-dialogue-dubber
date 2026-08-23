@@ -1,11 +1,11 @@
-import os
-import time
-import asyncio
-import subprocess
 from flask import Flask, render_template_string, request, send_file
+import subprocess
+import os
+import asyncio
+import edge_tts
 from deep_translator import GoogleTranslator
 from groq import Groq
-import edge_tts
+import time
 
 app = Flask(__name__)
 
@@ -22,7 +22,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Myanmar Video Studio</title>
+    <title>AI Myanmar Studio</title>
     <style>
         body { background-color: #0b0c16; color: #e2e8f0; font-family: sans-serif; padding: 14px; margin: 0; }
         .card { background: #151829; border: 1px solid #232742; border-radius: 14px; padding: 20px; max-width: 480px; margin: 20px auto; }
@@ -65,7 +65,7 @@ HTML_TEMPLATE = """
             </div>
             
             <button type="submit" id="submitBtn">⚡ Start Myanmar AI Dubbing</button>
-            <div id="loading" class="loading">⏳ AI စနစ်မှ စကားပြောသံများကို မြန်မာလို အသံသွင်းပေးနေပါသည်...</div>
+            <div id="loading" class="loading">⏳ AI စနစ်မှ မြန်မာလို အသံသွင်းပေးနေပါသည်...</div>
         </form>
     </div>
 </body>
@@ -169,5 +169,4 @@ def process():
     return send_file(final_output, as_attachment=True, download_name="myanmar_ai_video.mp4")
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=5000)
