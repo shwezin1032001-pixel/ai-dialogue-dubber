@@ -3,13 +3,9 @@ import time
 import asyncio
 import subprocess
 from flask import Flask, render_template_string, request, send_file
-import imageio_ffmpeg
 from deep_translator import GoogleTranslator
 from groq import Groq
 import edge_tts
-
-# Auto detect standalone ffmpeg path
-FFMPEG_EXE = imageio_ffmpeg.get_ffmpeg_exe()
 
 app = Flask(__name__)
 
@@ -96,7 +92,7 @@ def process():
     extracted_audio = os.path.join(temp_dir, "extracted.wav")
     final_output = f"output_{timestamp}.mp4"
 
-    subprocess.run([FFMPEG_EXE, "-y", "-i", input_vid, "-t", "300", "-vn", "-ar", "16000", "-ac", "1", extracted_audio], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(["ffmpeg", "-y", "-i", input_vid, "-t", "300", "-vn", "-ar", "16000", "-ac", "1", extracted_audio], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     with open(extracted_audio, "rb") as f:
         res = GROQ_CLIENT.audio.transcriptions.create(
@@ -142,7 +138,7 @@ def process():
         filter_complex = f"{';'.join(delays)};{''.join(mix_ins)}amix=inputs={len(dub_segments)}:normalize=0[alldubs];[0:a]volume=0.08[orig];[orig][alldubs]amix=inputs=2:duration=first[outa]"
 
         subprocess.run([
-            FFMPEG_EXE, "-y", "-i", input_vid,
+            "ffmpeg", "-y", "-i", input_vid,
             *inputs_cmd,
             "-filter_complex", filter_complex,
             "-map", "0:v:0", "-map", "[outa]",
@@ -163,7 +159,7 @@ def process():
         asyncio.run(gen_recap())
 
         subprocess.run([
-            FFMPEG_EXE, "-y", "-i", input_vid, "-i", recap_audio,
+            "ffmpeg", "-y", "-i", input_vid, "-i", recap_audio,
             "-filter_complex", "[0:a]volume=0.1[orig];[orig][1:a]amix=inputs=2:duration=first[outa]",
             "-map", "0:v:0", "-map", "[outa]",
             "-c:v", "copy", "-c:a", "aac",
