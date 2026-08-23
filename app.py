@@ -1,18 +1,11 @@
-import os
-import time
-import asyncio
-import subprocess
 from flask import Flask, render_template_string, request, send_file
-import static_ffmpeg
+import subprocess
+import os
+import asyncio
+import edge_tts
 from deep_translator import GoogleTranslator
 from groq import Groq
-import edge_tts
-
-# Async initialization for ffmpeg
-try:
-    static_ffmpeg.add_paths()
-except Exception:
-    pass
+import time
 
 app = Flask(__name__)
 
@@ -176,5 +169,4 @@ def process():
     return send_file(final_output, as_attachment=True, download_name="myanmar_ai_video.mp4")
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=5000)
