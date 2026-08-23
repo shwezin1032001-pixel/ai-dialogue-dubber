@@ -6,6 +6,10 @@ import edge_tts
 from deep_translator import GoogleTranslator
 from groq import Groq
 import time
+import static_ffmpeg
+
+# Setup portable ffmpeg
+static_ffmpeg.add_paths()
 
 app = Flask(__name__)
 
@@ -18,36 +22,54 @@ VOICE_FEMALE = "my-MM-NilarNeural"
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
-<html lang="en">
+<html lang="my">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Dialogue Dubber Studio</title>
+    <title>AI Myanmar Video Studio</title>
     <style>
-        body { background-color: #0b0c16; color: #e2e8f0; font-family: sans-serif; padding: 14px; margin: 0; padding-bottom: 30px; }
-        .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #232742; padding-bottom: 10px; }
-        .header h2 { color: #38bdf8; margin: 0; font-size: 22px; }
-        .card { background: #151829; border: 1px solid #232742; border-radius: 14px; padding: 16px; max-width: 500px; margin: 0 auto; }
-        .upload-box { border: 2px dashed #38bdf8; border-radius: 12px; padding: 25px; text-align: center; cursor: pointer; margin-bottom: 15px; background: #101223; }
-        button { width: 100%; background: linear-gradient(90deg, #0284c7, #38bdf8); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 15px; }
+        body { background-color: #0b0c16; color: #e2e8f0; font-family: sans-serif; padding: 14px; margin: 0; }
+        .card { background: #151829; border: 1px solid #232742; border-radius: 14px; padding: 20px; max-width: 480px; margin: 20px auto; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h2 { color: #38bdf8; margin: 0 0 6px 0; font-size: 22px; }
+        .mode-box { display: flex; gap: 10px; margin-bottom: 20px; }
+        .mode-option { flex: 1; border: 1px solid #232742; padding: 12px 8px; border-radius: 10px; text-align: center; background: #0c0e17; cursor: pointer; }
+        .mode-option input { margin-bottom: 6px; }
+        .upload-box { border: 2px dashed #38bdf8; border-radius: 12px; padding: 25px; text-align: center; cursor: pointer; margin-bottom: 20px; background: #101223; }
+        button { width: 100%; background: linear-gradient(90deg, #0284c7, #38bdf8); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .loading { display: none; text-align: center; color: #38bdf8; margin-top: 15px; font-size: 14px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h2>🎭 AI Dialogue Dubber Studio</h2>
-        <small style="color: #94a3b8;">ဇာတ်ကောင် အချင်းချင်း အပြန်အလှန် စကားပြောသံ ထည့်သွင်းပေးသည့် စနစ်</small>
-    </div>
-
     <div class="card">
-        <form method="POST" action="/dub" enctype="multipart/form-data">
+        <div class="header">
+            <h2>✨ AI Myanmar Video Studio</h2>
+            <small style="color: #94a3b8;">ဇာတ်လမ်းတို၊ TikTok နှင့် 3D ကာတွန်းများကို မြန်မာအသံပြောင်းပေးသည့် စနစ်</small>
+        </div>
+
+        <form method="POST" action="/process" enctype="multipart/form-data" onsubmit="document.getElementById('loading').style.display='block'; document.getElementById('submitBtn').style.display='none';">
+            <div class="mode-box">
+                <label class="mode-option">
+                    <input type="radio" name="mode" value="dialogue" checked>
+                    <div style="font-weight: bold; font-size: 13px; color: #38bdf8;">🎭 Dialogue Mode</div>
+                    <small style="color: #94a3b8; font-size: 11px;">အပြန်အလှန် စကားပြောသံ</small>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="mode" value="recap">
+                    <div style="font-weight: bold; font-size: 13px; color: #38bdf8;">🎙️ Recap Mode</div>
+                    <small style="color: #94a3b8; font-size: 11px;">ဇာတ်ကြောင်းပြန် အသံ</small>
+                </label>
+            </div>
+
             <div class="upload-box" onclick="document.getElementById('videoFile').click()">
-                <div style="font-size:32px;">🎬</div>
-                <div id="file-name" style="font-size:14px; font-weight:bold; color:#38bdf8; margin-top:8px;">ဗီဒီယို ဖိုင်ရွေးချယ်ပါ</div>
-                <small style="color:#94a3b8;">တရုတ် / အင်္ဂလိပ် စကားပြော ဗီဒီယို (၅ မိနစ်အထိ)</small>
+                <div style="font-size:36px;">🎬</div>
+                <div id="file-name" style="font-size:15px; font-weight:bold; color:#38bdf8; margin-top:8px;">ဗီဒီယို ဖိုင်ရွေးချယ်ပါ</div>
+                <small style="color:#94a3b8;">(တရုတ်၊ အင်္ဂလိပ်၊ 3D ကာတွန်း စသည့် မည်သည့် ဗီဒီယိုမဆို)</small>
                 <input type="file" id="videoFile" name="video" accept="video/*" style="display:none;" onchange="document.getElementById('file-name').innerText = this.files[0].name" required>
             </div>
             
-            <button type="submit">✨ Start Auto Dialogue Dubbing</button>
+            <button type="submit" id="submitBtn">⚡ Start Myanmar AI Dubbing</button>
+            <div id="loading" class="loading">⏳ AI စနစ်မှ စကားပြောသံများကို မြန်မာလို အသံသွင်းပေးနေပါသည်...</div>
         </form>
     </div>
 </body>
@@ -58,9 +80,10 @@ HTML_TEMPLATE = """
 def home():
     return render_template_string(HTML_TEMPLATE)
 
-@app.route('/dub', methods=['POST'])
-def dub_video():
+@app.route('/process', methods=['POST'])
+def process():
     video = request.files.get('video')
+    mode = request.form.get('mode', 'dialogue')
     if not video or video.filename == '':
         return "Video ဖိုင် ရွေးချယ်ပေးပါ", 400
 
@@ -71,7 +94,7 @@ def dub_video():
     input_vid = os.path.join(temp_dir, "input.mp4")
     video.save(input_vid)
     extracted_audio = os.path.join(temp_dir, "extracted.wav")
-    final_output = f"dialogue_dubbed_{timestamp}.mp4"
+    final_output = f"output_{timestamp}.mp4"
 
     subprocess.run(["ffmpeg", "-y", "-i", input_vid, "-t", "300", "-vn", "-ar", "16000", "-ac", "1", extracted_audio], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -84,54 +107,72 @@ def dub_video():
         )
 
     segments = res.segments
-    dub_segments = []
-    current_voice = VOICE_MALE
 
-    for idx, seg in enumerate(segments):
-        start_ms = int(seg['start'] * 1000)
-        orig_text = seg['text'].strip()
-        if not orig_text:
-            continue
+    if mode == "dialogue":
+        dub_segments = []
+        current_voice = VOICE_MALE
+        for idx, seg in enumerate(segments):
+            orig_text = seg['text'].strip()
+            if not orig_text:
+                continue
+            try:
+                my_text = GoogleTranslator(source='auto', target='my').translate(orig_text)
+            except:
+                my_text = orig_text
+
+            current_voice = VOICE_FEMALE if current_voice == VOICE_MALE else VOICE_MALE
+            seg_file = os.path.join(temp_dir, f"seg_{idx}.mp3")
+
+            async def gen():
+                comm = edge_tts.Communicate(my_text, voice=current_voice, rate="+10%")
+                await comm.save(seg_file)
+            asyncio.run(gen())
+
+            dub_segments.append({"file": seg_file, "delay": int(seg['start'] * 1000)})
+
+        inputs_cmd = []
+        delays = []
+        mix_ins = []
+        for i, seg in enumerate(dub_segments):
+            inputs_cmd.extend(["-i", seg["file"]])
+            in_idx = i + 1
+            delays.append(f"[{in_idx}:a]adelay={seg['delay']}|{seg['delay']}[a{in_idx}]")
+            mix_ins.append(f"[a{in_idx}]")
+
+        filter_complex = f"{';'.join(delays)};{''.join(mix_ins)}amix=inputs={len(dub_segments)}:normalize=0[alldubs];[0:a]volume=0.08[orig];[orig][alldubs]amix=inputs=2:duration=first[outa]"
+
+        subprocess.run([
+            "ffmpeg", "-y", "-i", input_vid,
+            *inputs_cmd,
+            "-filter_complex", filter_complex,
+            "-map", "0:v:0", "-map", "[outa]",
+            "-c:v", "copy", "-c:a", "aac",
+            final_output
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    else:
+        # Recap Mode
+        full_text = " ".join([s['text'] for s in segments])
         try:
-            my_text = GoogleTranslator(source='auto', target='my').translate(orig_text)
+            my_full_text = GoogleTranslator(source='auto', target='my').translate(full_text[:1500])
         except:
-            my_text = orig_text
+            my_full_text = full_text[:1500]
 
-        current_voice = VOICE_FEMALE if current_voice == VOICE_MALE else VOICE_MALE
-        seg_file = os.path.join(temp_dir, f"seg_{idx}.mp3")
+        recap_audio = os.path.join(temp_dir, "recap.mp3")
+        async def gen_recap():
+            comm = edge_tts.Communicate(my_full_text, voice=VOICE_MALE)
+            await comm.save(recap_audio)
+        asyncio.run(gen_recap())
 
-        async def gen():
-            comm = edge_tts.Communicate(my_text, voice=current_voice, rate="+10%")
-            await comm.save(seg_file)
-        asyncio.run(gen())
+        subprocess.run([
+            "ffmpeg", "-y", "-i", input_vid, "-i", recap_audio,
+            "-filter_complex", "[0:a]volume=0.1[orig];[orig][1:a]amix=inputs=2:duration=first[outa]",
+            "-map", "0:v:0", "-map", "[outa]",
+            "-c:v", "copy", "-c:a", "aac",
+            final_output
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-        dub_segments.append({"file": seg_file, "delay": start_ms})
-
-    if not dub_segments:
-        return "ဗီဒီယိုထဲတွင် စကားပြောသံ မတွေ့ရှိပါ", 400
-
-    inputs_cmd = []
-    delays = []
-    mix_ins = []
-    for i, seg in enumerate(dub_segments):
-        inputs_cmd.extend(["-i", seg["file"]])
-        in_idx = i + 1
-        delays.append(f"[{in_idx}:a]adelay={seg['delay']}|{seg['delay']}[a{in_idx}]")
-        mix_ins.append(f"[a{in_idx}]")
-
-    filter_complex = f"{';'.join(delays)};{''.join(mix_ins)}amix=inputs={len(dub_segments)}:normalize=0[alldubs];[0:a]volume=0.08[orig];[orig][alldubs]amix=inputs=2:duration=first[outa]"
-
-    subprocess.run([
-        "ffmpeg", "-y", "-i", input_vid,
-        *inputs_cmd,
-        "-filter_complex", filter_complex,
-        "-map", "0:v:0", "-map", "[outa]",
-        "-c:v", "copy", "-c:a", "aac",
-        final_output
-    ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-    return send_file(final_output, as_attachment=True, download_name="myanmar_dialogue_dubbed.mp4")
+    return send_file(final_output, as_attachment=True, download_name="myanmar_ai_video.mp4")
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
