@@ -1,15 +1,18 @@
-from flask import Flask, render_template_string, request, send_file
-import subprocess
 import os
+import time
 import asyncio
-import edge_tts
+import subprocess
+from flask import Flask, render_template_string, request, send_file
+import static_ffmpeg
 from deep_translator import GoogleTranslator
 from groq import Groq
-import time
-import static_ffmpeg
+import edge_tts
 
-# Setup portable ffmpeg
-static_ffmpeg.add_paths()
+# Async initialization for ffmpeg
+try:
+    static_ffmpeg.add_paths()
+except Exception:
+    pass
 
 app = Flask(__name__)
 
@@ -117,15 +120,15 @@ def process():
                 continue
             try:
                 my_text = GoogleTranslator(source='auto', target='my').translate(orig_text)
-            except:
+            except Exception:
                 my_text = orig_text
 
             current_voice = VOICE_FEMALE if current_voice == VOICE_MALE else VOICE_MALE
             seg_file = os.path.join(temp_dir, f"seg_{idx}.mp3")
 
-            async def gen():
-                comm = edge_tts.Communicate(my_text, voice=current_voice, rate="+10%")
-                await comm.save(seg_file)
+            async def gen(t=my_text, v=current_voice, o=seg_file):
+                comm = edge_tts.Communicate(t, voice=v, rate="+10%")
+                await comm.save(o)
             asyncio.run(gen())
 
             dub_segments.append({"file": seg_file, "delay": int(seg['start'] * 1000)})
@@ -150,11 +153,10 @@ def process():
             final_output
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
-        # Recap Mode
         full_text = " ".join([s['text'] for s in segments])
         try:
             my_full_text = GoogleTranslator(source='auto', target='my').translate(full_text[:1500])
-        except:
+        except Exception:
             my_full_text = full_text[:1500]
 
         recap_audio = os.path.join(temp_dir, "recap.mp3")

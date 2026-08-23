@@ -1,5 +1,4 @@
 Flask==3.0.0
-gunicorn==21.2.0
 groq==0.11.0
 deep-translator==1.11.4
 edge-tts==6.1.10
